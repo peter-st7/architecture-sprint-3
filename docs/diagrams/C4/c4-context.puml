@@ -1,0 +1,11 @@
+@startuml Smart Home C4 System Context Diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+Person(user, "Пользователь", "Клиент, управляет отоплением в доме")
+System(smart_home_system, "Smart Home", "Управляет отоплением в домах клиентов")
+System_Ext(heating_device, "Датчики температуры отопления в домах")
+
+Rel(user, smart_home_system, "Включает и выключает отопление, устанавливает требуемую температуру, просматривает текущую температуру используя")
+Rel(smart_home_system, heating_device, "Включает и выключает отопление, устанавливает требуемую температуру")
+
+@enduml

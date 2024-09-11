@@ -1,0 +1,11 @@
+@startuml Smart Home DDD Startegic Model
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Enterprise_Boundary(enterprise, "Smart Home") {
+   Boundary(core_domain, "Управление устройствами", domain) {
+      Container(heating_subdomain, "Отопление", subdomain) {
+         Component(heating_bounded_context, "Отопление", "bounded context")
+      }
+   }
+}
+@enduml

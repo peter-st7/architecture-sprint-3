@@ -1,74 +1,26 @@
-# Базовая настройка
+# Проектная работа спринта 3
 
-## Запуск minikube
+## Подзадание 1.1. Анализ и планирование. Описание текущей системы.
 
-[Инструкция по установке](https://minikube.sigs.k8s.io/docs/start/)
+### Анализ предметной области
+Доменная модель: [domain-model-strategic.puml](./docs/diagrams/domain/domain-model-strategic.puml)
+> Данная модель отражает область автоматизации текущей системы Smart Home. Модель целевой экосистемы присутствует в разделе 1.2.
 
-```bash
-minikube start
-```
+### Функциональные возможности
+- Пользователи могут удалённо включать/выключать отопление в своих домах.
+- Пользователи могут устанавливать необходимую температуру отопления.
+- Система автоматически поддерживает заданную температуру, регулируя подачу тепла.
+- Пользователи могут просматривать текущую температуру в своих домах через веб-интерфейс.
 
+### Архитектура
 
-## Добавление токена авторизации GitHub
+Диаграмма С4 System Context: [c4-context.puml](./docs/diagrams/C4/c4-context.puml)
 
-[Получение токена](https://github.com/settings/tokens/new)
+Система представляет собой монолитное приложение на языке Java. Взаимодействие с сиcтемой осуществляется посредством обращений к REST API. Для хранения данных используется СУБД PostgreSQL.
 
-```bash
-kubectl create secret docker-registry ghcr --docker-server=https://ghcr.io --docker-username=<github_username> --docker-password=<github_token> -n default
-```
+Ограничения текущей архитектуры:
 
-
-## Установка API GW kusk
-
-[Install Kusk CLI](https://docs.kusk.io/getting-started/install-kusk-cli)
-
-```bash
-kusk cluster install
-```
-
-
-## Настройка terraform
-
-[Установите Terraform](https://yandex.cloud/ru/docs/tutorials/infrastructure-management/terraform-quickstart#install-terraform)
-
-
-Создайте файл ~/.terraformrc
-
-```hcl
-provider_installation {
-  network_mirror {
-    url = "https://terraform-mirror.yandexcloud.net/"
-    include = ["registry.terraform.io/*/*"]
-  }
-  direct {
-    exclude = ["registry.terraform.io/*/*"]
-  }
-}
-```
-
-## Применяем terraform конфигурацию 
-
-```bash
-cd terraform
-terraform apply
-```
-
-## Настройка API GW
-
-```bash
-kusk deploy -i api.yaml
-```
-
-## Проверяем работоспособность
-
-```bash
-kubectl port-forward svc/kusk-gateway-envoy-fleet -n kusk-system 8080:80
-curl localhost:8080/hello
-```
-
-
-## Delete minikube
-
-```bash
-minikube delete
-```
+- Все компоненты системы (обработка запросов, бизнес-логика, работа с данными) находятся в рамках одного приложения.
+- Все вызовы к API являются синхронными (блокирующими).
+- Масштабирование ограничено, т.к. нет возможности масштабировать определенную функциональность приложения отдельно.
+- Для обновления требуется остановка всего приложения, что влечет простой в работе.
