@@ -10,3 +10,5 @@ CREATE TABLE IF NOT EXISTS temperature_sensors (
     current_temperature DOUBLE PRECISION NOT NULL,
     last_updated TIMESTAMP NOT NULL
 );
+
+INSERT INTO heating_systems VALUES(990101, true, 22.5, 18.5);

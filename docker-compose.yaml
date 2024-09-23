@@ -1,0 +1,158 @@
+version: "3"
+
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.0.0/16
+
+services:
+  kafka:
+    image: "apache/kafka:3.8.0"
+    restart: always
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT_HOST://kafka:9092,PLAINTEXT://kafka:19092'
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: 'CONTROLLER://:29093,PLAINTEXT_HOST://:9092,PLAINTEXT://:19092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    ports:
+      - 9092:9092
+    networks:
+      app-network:
+        ipv4_address: 192.168.7.1
+
+  postgres:
+    image: postgres:16
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: change_me
+      POSTGRES_DB: smart_home
+    ports:
+      - 5432:5432
+    networks:
+      app-network:
+        ipv4_address: 192.168.7.2
+
+  kong:
+    image: kong/kong-gateway:3.8-ubuntu
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /smart-home/kong.yaml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+      KONG_ADMIN_GUI_URL: "http://localhost:8002"
+    ports:
+      - 8000:8000
+      - 8001:8001
+      - 8002:8002
+    volumes:
+      - ./infrastructure/kong/kong.yaml:/smart-home/kong.yaml
+    networks:
+      app-network:
+        ipv4_address: 192.168.7.3
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui:v5.17.14
+    environment:
+      SWAGGER_JSON_URL: "http://localhost:8000/public/api/public-api.yaml"
+    ports:
+      - 8088:8080
+    volumes:
+      - ./public-api.yaml:/smart-home/public-api.yaml
+    networks:
+      app-network:
+        ipv4_address: 192.168.7.4
+
+  # -----------------------------------------------------------------
+
+  smart_home_monolith:
+    container_name: smart_home_monolith
+    build:
+      context: smart-home-monolith
+      dockerfile: Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smart_home
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: change_me
+    ports:
+      - 8080:8080
+    depends_on:
+      - postgres
+    networks:
+      app-network:
+        ipv4_address: 192.168.7.6
+
+  smart_home_monolith_acl:
+    container_name: smart-home-monolith-acl
+    build:
+      context: smart-home-monolith-acl
+      dockerfile: Dockerfile
+    environment:
+      SPRING_KAFKA_BOOTSTRAPSERVERS: kafka:9092
+    ports:
+      - 8081:8080
+    depends_on:
+      - kafka
+    networks:
+      app-network:
+        ipv4_address: 192.168.7.7
+
+  smart_home_monolith_kafka_acl:
+    container_name: smart_home_monolith_kafka_acl
+    build:
+      context: smart-home-monolith-kafka-acl
+      dockerfile: Dockerfile
+    environment:
+      SPRING_KAFKA_BOOTSTRAPSERVERS: kafka:9092
+      APP_MONOLITH_APIURL: "http://192.168.7.6:8080/api/heating"
+    ports:
+      - 8082:8080
+    depends_on:
+      - kafka
+      - smart_home_monolith
+    networks:
+      app-network:
+        ipv4_address: 192.168.7.8
+
+  smart_home_telemetry:
+    container_name: smart_home_telemetry
+    build:
+      context: smart-home-telemetry
+      dockerfile: Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smart_home
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: change_me
+    ports:
+      - 8083:8080
+    depends_on:
+      - postgres
+    networks:
+      app-network:
+        ipv4_address: 192.168.7.9
+
+  smart_home_communication:
+    container_name: smart_home_communication
+    build:
+      context: smart-home-communication
+      dockerfile: Dockerfile
+    ports:
+      - 8084:8080
+    networks:
+      app-network:
+        ipv4_address: 192.168.7.10

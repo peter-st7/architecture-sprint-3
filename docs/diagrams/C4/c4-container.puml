@@ -37,9 +37,12 @@ System_Boundary(smart_home_system, "Smart Home") {
     ContainerQueue(kafka, "Kafka", "", "Шина данных")
 }
 
+Container(legacy_kafka_to_rest, "Smart Home Legacy Kafka ACL", "Java, Spring Boot", "Преобразует сообщения Kafka в вызовы REST интерфейса legacy системы Smart Home")
 System(legacy_smart_home, "Legacy система Smart Home", "Управляет отоплением в домах клиентов")
+Rel(legacy_kafka_to_rest, legacy_smart_home, "Выполняет обращения к API", "Rest")
 
 System_Ext(heating_module, "Модуль управления отоплением", "Управляет регулятором отопления в доме")
+Rel(legacy_smart_home, heating_module, "Управлет отоплением", "REST")
 System_Ext(lightening_module, "Модуль управления освещением", "Управляет осветительными приборами в доме")
 System_Ext(automatic_gates_module, "Модуль управления автоматическими воротами", "Управляет автоматическими воротами")
 
@@ -77,8 +80,8 @@ Rel(telemetry_service, telemetry_db, "Читает и записывает да�
 Rel(telemetry_service, kafka, "Записывает данные телеметрии")
 
 Rel(api_gateway, legacy_acl, "Выполняет обращения к API", "REST")
-Rel(legacy_acl, legacy_smart_home, "Выполняет обращения к API", "REST")
-Rel(legacy_smart_home, heating_module, "Управлет отоплением", "REST")
+Rel(legacy_acl, kafka, "Выполняет обращения к API legacy системы", "Kafka")
+Rel(kafka, legacy_kafka_to_rest, "Выполняет обращения к API legacy системы", "Kafka")
 
 Rel(api_gateway, script_service, "Выполняет обращения к API", "REST")
 Rel(script_service, script_db, "Читает и записывает данные", "SQL")

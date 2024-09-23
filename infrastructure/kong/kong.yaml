@@ -1,0 +1,57 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: smart-home-monolith-acl
+    connect_timeout: 30000
+    url: http://192.168.7.7:8080
+    routes:
+      - name: heating-route
+        paths:
+          - /api/heating
+        protocols:
+          - http
+        strip_path: false
+
+  - name: smart-home-telemetry
+    url: http://192.168.7.9:8080
+    routes:
+      - name: telemetry-route
+        paths:
+          - /api/telemetry
+          - /ws/telemetry
+        protocols:
+          - http
+        strip_path: false
+
+  - name: smart-home-communication
+    url: http://192.168.7.10:8080
+    routes:
+      - name: command-route
+        paths:
+          - /ws/command
+        protocols:
+          - http
+        strip_path: false
+
+  - name: rest-api-swagger
+    connect_timeout: 30000
+    url: http://192.168.7.4:8080
+    routes:
+      - name: swagger-ui
+        paths:
+          - /public/api/swagger
+        protocols:
+          - http
+        strip_path: true
+
+  - name: api-docs
+    connect_timeout: 30000
+    url: http://192.168.7.5:8080
+    routes:
+      - name: docs
+        paths:
+          - /public/api
+        protocols:
+          - http
+        strip_path: true

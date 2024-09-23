@@ -1,0 +1,19 @@
+server:
+  port: 8080
+app:
+  monolith:
+    api-url: "http://localhost:8080/api/heating"
+  kafka:
+    topic: heatingCommands
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: monolithKafkaAclGroup
+      key-deserializer: org.apache.kafka.common.serialization.LongDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring:
+          json:
+            type:
+              mapping: EnableCommand:ru.smarthome.kafka.acl.command.EnableCommand,SetTemperatureCommand:ru.smarthome.kafka.acl.command.SetTemperatureCommand
