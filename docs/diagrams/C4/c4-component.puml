@@ -5,12 +5,7 @@
 System_Boundary(smart_home_system, "Smart Home") {
     Container(web_application, "Веб-приложение пользователя", "Nginx, Java Script", "Предоставляет пользователям функциональность для управления устройствами в домах используя веб-браузер")
 
-    Container(admin_web_application, "Веб-приложение администратора", "Nginx, Java Script", "Предоставляет функциональность администрирования системы используя веб-браузер")
-    
     Container(api_gateway, "API Gateway", "Kong/Kusk", "Направляет HTTP запросы к соответствующим микросервисам, выполняет аутентификацию пользователей")
-    
-    Container(user_service, "Микросервис управления пользователями", "Java, Spring Boot", "Управляет пользователями системы")
-    ContainerDb(user_db, "База данных пользователей", "Postgre SQL")
 
     Container_Boundary(device_service, "Микросервис управления устройствами") {
         Component(device_service_controller, "Device Controller", "Spring Web MVC", "Позволяет добавлять, изменять, удалять устройства пользователя и сохранять текущее их состояние")
@@ -32,41 +27,20 @@ System_Boundary(smart_home_system, "Smart Home") {
     }
     ContainerDb(telemetry_db, "База данных телеметрии", "Postgre SQL")
 
-    Container(script_service, "Микросервис управления сценариями автоматизации", "Java, Spring Boot", "Управляет и оркестрирует пользовательскими сценариями автоматизации (например: если сейчас 20:00, то включи свет на площадке перед домом)")
-    ContainerDb(script_db, "База данных сценариев автоматизации", "Postgre SQL")
-
-    Container(alert_service, "Микросервис обнаружения проблемных ситуациях", "Java, Spring Boot", "Выявляет и предупреждает пользователей об обнаруженных проблемах (например: ворота открыты больше 2х часов, свет горит больше 12 часов)")
-    ContainerDb(alert_service_db, "База данных проблемных ситуаций", "Postgre SQL")
-
-    Container(lightening_service, "Микросервис управления освещением", "Java, Spring Boot", "Взаимодействует с модулями управления освещения в домах")
-
-    Container(automatic_gates_service, "Микросервис управления автоматическими воротами", "Java, Spring Boot", "Взаимодействует с модулями управления автоматическими воротами")
-   
     Container_Boundary(communication_service, "Сервис коммуникации с управляющими модулями") {
         Component(communication_service_cmd_controller, "Command Controller", "Spring Web MVC", "Принимает команды для отправки управляющим модулям")
         Component(communication_service_conn_controller, "Connection Controller", "WebSocket", "Принимает входящие подключения от управляющих модулей")
         Component(communication_service_svc, "Communication Service", "", "Передает команды управляющим модулям")
     }
 
-    Container(legacy_acl, "ACL для legacy системы Smart Home", "Java, Spring Boot", "Отвечает за взаимодействие с legacy системой Smart Home для управления отоплением")
-
     ContainerQueue(kafka, "Kafka", "", "Шина данных")
 }
 
-Container(legacy_kafka_to_rest, "Smart Home Legacy Kafka ACL", "Java, Spring Boot", "Преобразует сообщения Kafka в вызовы REST интерфейса legacy системы Smart Home")
-System(legacy_smart_home, "Legacy система Smart Home", "Управляет отоплением в домах клиентов")
-Rel(legacy_kafka_to_rest, legacy_smart_home, "Выполняет обращения к API", "Rest")
-
-System_Ext(heating_module, "Модуль управления отоплением", "Управляет регулятором отопления в доме")
-Rel(legacy_smart_home, heating_module, "Управлет отоплением", "REST")
 System_Ext(lightening_module, "Модуль управления освещением", "Управляет осветительными приборами в доме")
 System_Ext(automatic_gates_module, "Модуль управления автоматическими воротами", "Управляет автоматическими воротами")
+System_Ext(heating_module, "Модуль управления отоплением", "Управляет отоплением в доме")
 
 Rel(web_application, api_gateway, "Выполняет обращения к API", "REST")
-Rel(admin_web_application, api_gateway, "Выполняет обращения к API", "REST")
-
-Rel(api_gateway, user_service, "Выполняет обращения к API", "REST")
-Rel(user_service, user_db, "Читает и записывает данные", "SQL")
 
 Rel(api_gateway, device_service_controller, "Выполняет обращения к API", "REST")
 Rel(device_service_controller, device_service_svc, "Использует")
@@ -78,18 +52,12 @@ Rel(device_service_home_controller, device_service_home_svc, "Используе
 Rel(device_service_home_svc, device_service_home_repository, "Использует")
 Rel(device_service_home_repository, device_db, "Читает и записывает данные", "SQL")
 
-Rel(api_gateway, lightening_service, "Выполняет обращения к API", "REST")
-Rel(lightening_service, device_service_controller, "Валидирует наличие устройства у пользователя и сохраняет текущую конфигурацию устройства", "REST")
-Rel(lightening_service, communication_service_cmd_controller, "Отправляет команды управления освещением", "REST")
-
-Rel(api_gateway, automatic_gates_service, "Выполняет обращения к API", "REST")
-Rel(automatic_gates_service, device_service_controller, "Валидирует наличие устройства у пользователя и сохраняет текущую конфигурацию устройства", "REST")
-Rel(automatic_gates_service, communication_service_cmd_controller, "Отправляет команды управления воротами", "REST")
-
 Rel(automatic_gates_module, api_gateway, "Передает телеметрию и принимает управляющие команды", "WebSocket")
 Rel(lightening_module, api_gateway, "Передает телеметрию и принимает управляющие команды", "WebSocket")
+Rel(heating_module, api_gateway, "Передает телеметрию и принимает управляющие команды", "WebSocket")
 
 Rel(api_gateway, communication_service_conn_controller, "Принимает входящие подключения от управляющих модулей", "WebSocket")
+Rel(api_gateway, communication_service_cmd_controller, "Принимает команды для передачи управляющим модулям", "REST")
 Rel(communication_service_conn_controller, communication_service_svc, "Использует")
 Rel(communication_service_cmd_controller, communication_service_svc, "Использует")
 
@@ -100,16 +68,4 @@ Rel(telemetry_service_repository, telemetry_db, "Читает и записыв�
 Rel(telemetry_service_svc, telemetry_service_kafka_component, "Использует")
 Rel(telemetry_service_kafka_component, kafka, "Записывает данные телеметрии")
 
-Rel(api_gateway, legacy_acl, "Выполняет обращения к API", "REST")
-Rel(legacy_acl, kafka, "Выполняет обращения к API", "Kafka")
-Rel(kafka, legacy_kafka_to_rest, "Выполняет обращения к API", "Kafka")
-
-Rel(api_gateway, script_service, "Выполняет обращения к API", "REST")
-Rel(script_service, script_db, "Читает и записывает данные", "SQL")
-Rel(script_service, lightening_service, "Выполняет обращения к API для управления освещением", "REST")
-Rel(script_service, automatic_gates_service, "Выполняет обращения к API для управления воротами", "REST")
-
-Rel(api_gateway, alert_service, "Выполняет обращения к API", "REST")
-Rel(alert_service, kafka, "Читает данные телеметрии")
-Rel(alert_service, alert_service_db, "Читает и записывает данные", "SQL")
 @enduml
