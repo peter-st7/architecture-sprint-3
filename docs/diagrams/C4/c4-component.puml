@@ -1,0 +1,71 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+System_Boundary(smart_home_system, "Smart Home") {
+    Container(web_application, "Веб-приложение пользователя", "Nginx, Java Script", "Предоставляет пользователям функциональность для управления устройствами в домах используя веб-браузер")
+
+    Container(api_gateway, "API Gateway", "Kong/Kusk", "Направляет HTTP запросы к соответствующим микросервисам, выполняет аутентификацию пользователей")
+
+    Container_Boundary(device_service, "Микросервис управления устройствами") {
+        Component(device_service_controller, "Device Controller", "Spring Web MVC", "Позволяет добавлять, изменять, удалять устройства пользователя и сохранять текущее их состояние")
+        Component(device_service_repository, "Device Repository", "Spring Data", "Репозиторий устройств")
+        Component(device_service_svc, "Device Service", "", "Логика по работе с объектами устройств")
+        
+        Component(device_service_home_controller, "Home Controller", "Spring Web MVC", "Позволяет добавлять, изменять и удалять дома пользователя")
+        Component(device_service_home_repository, "Home Repository", "Spring Data", "Репозиторий домов")
+        Component(device_service_home_svc, "Home Service", "", "Логика по работе с объектами домов")
+    }
+
+    ContainerDb(device_db, "База данных устройств", "Postgre SQL")
+    
+    Container_Boundary(telemetry_service, "Микросервис телеметрии") {
+        Component(telemetry_service_controller, "Telemetry Controller", "Spring Web MVC", "Позволяет получать и предоставлять данные телеметрии")
+        Component(telemetry_service_svc, "Telemetry Service", "", "Содержит логику по предоставлению и сохранению телеметрии")
+        Component(telemetry_service_repository, "Telemetry Db Repository", "", "Сохраняет данные телеметрии в БД")
+        Component(telemetry_service_kafka_component, "Telemetry Kafka Component", "", "Сохраняет данные телеметрии в топики Kafka")
+    }
+    ContainerDb(telemetry_db, "База данных телеметрии", "Postgre SQL")
+
+    Container_Boundary(communication_service, "Сервис коммуникации с управляющими модулями") {
+        Component(communication_service_cmd_controller, "Command Controller", "Spring Web MVC", "Принимает команды для отправки управляющим модулям")
+        Component(communication_service_conn_controller, "Connection Controller", "WebSocket", "Принимает входящие подключения от управляющих модулей")
+        Component(communication_service_svc, "Communication Service", "", "Передает команды управляющим модулям")
+    }
+
+    ContainerQueue(kafka, "Kafka", "", "Шина данных")
+}
+
+System_Ext(lightening_module, "Модуль управления освещением", "Управляет осветительными приборами в доме")
+System_Ext(automatic_gates_module, "Модуль управления автоматическими воротами", "Управляет автоматическими воротами")
+System_Ext(heating_module, "Модуль управления отоплением", "Управляет отоплением в доме")
+
+Rel(web_application, api_gateway, "Выполняет обращения к API", "REST")
+
+Rel(api_gateway, device_service_controller, "Выполняет обращения к API", "REST")
+Rel(device_service_controller, device_service_svc, "Использует")
+Rel(device_service_svc, device_service_repository, "Использует")
+Rel(device_service_repository, device_db, "Читает и записывает данные", "SQL")
+
+Rel(api_gateway, device_service_home_controller, "Выполняет обращения к API", "REST")
+Rel(device_service_home_controller, device_service_home_svc, "Использует")
+Rel(device_service_home_svc, device_service_home_repository, "Использует")
+Rel(device_service_home_repository, device_db, "Читает и записывает данные", "SQL")
+
+Rel(automatic_gates_module, api_gateway, "Передает телеметрию и принимает управляющие команды", "WebSocket")
+Rel(lightening_module, api_gateway, "Передает телеметрию и принимает управляющие команды", "WebSocket")
+Rel(heating_module, api_gateway, "Передает телеметрию и принимает управляющие команды", "WebSocket")
+
+Rel(api_gateway, communication_service_conn_controller, "Принимает входящие подключения от управляющих модулей", "WebSocket")
+Rel(api_gateway, communication_service_cmd_controller, "Принимает команды для передачи управляющим модулям", "REST")
+Rel(communication_service_conn_controller, communication_service_svc, "Использует")
+Rel(communication_service_cmd_controller, communication_service_svc, "Использует")
+
+Rel(api_gateway, telemetry_service_controller, "Передает данные телеметрии и обрабатывает запросы на предоставление данных телеметрии", "REST, WebSocket")
+Rel(telemetry_service_controller, telemetry_service_svc, "Использует")
+Rel(telemetry_service_svc, telemetry_service_repository, "Использует")
+Rel(telemetry_service_repository, telemetry_db, "Читает и записывает данные", "SQL")
+Rel(telemetry_service_svc, telemetry_service_kafka_component, "Использует")
+Rel(telemetry_service_kafka_component, kafka, "Записывает данные телеметрии")
+
+@enduml

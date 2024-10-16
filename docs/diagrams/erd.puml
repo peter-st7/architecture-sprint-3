@@ -1,0 +1,147 @@
+@startuml Smart Home ERD
+entity "User" as user {
+  * user_id : int8
+  --
+  * user_name : varchar(24) <<unique>>
+  * name : varchar(100)
+  * email : varchar(64) <<unique>>
+  * password_hash : bytea
+  * created : timestamp
+  * created_by : varchar(24)
+  deleted : boolean
+}
+
+'------------------------------------------
+
+entity "Module" as module {
+  * id : int8
+  --
+  * type : int8 <<FK>>
+  * model : varchar(100)
+  * manufacturer : varchar(100)
+  * created : timestamp
+  * created_by : varchar(24)
+  deleted : boolean
+}
+
+entity "Module_type" as module_type {
+  * id : int8
+  --
+  * type_name : varchar(24) <<unique>>
+  * created : timestamp
+  * created_by : varchar(24)
+  deleted : boolean
+}
+
+entity "House_module" as house_module {
+  * id : int8
+  --
+  * house_id : int8 <<FK>>
+  * module_id : int8 <<FK>>
+  * serial_number : varchar(100)
+  * enabled : boolean
+  parameters : varchar(1024)
+}
+
+entity "House" as house {
+  * id : int8
+  --
+  * user_id : int8 <<FK>>
+  * description : varchar(100)
+}
+
+user ||..o| house
+house ||..|{ house_module
+house_module ||..|| module
+module ||..|| module_type
+
+'------------------------------------------
+
+entity "Telemetry" as telemetry {
+  --
+  * received : timestamptz
+  * serial_number : varchar(24)
+  * ip_address : varchar(11)
+  * payload : json
+}
+
+note bottom of telemetry
+Первичный ключ не используется, т.к. будет 
+поступать большое кол-во данных и его наличие замедлит вставку.
+Выборка происходит по серийному номеру устройства.
+end note
+
+'------------------------------------------
+
+entity "AutomationScript" as script {
+  * id : int8
+  --
+  * user_id : int8 <<FK>>
+  * created : timestamptz
+  * enabled : boolean
+  * valid : boolean
+  * script_content : json
+}
+
+user ||..o{ script
+
+'------------------------------------------
+
+entity "Alert" as alert {
+  * id : int8
+  --
+  * rule_id : int8 <<FK>>
+  * created : timestamptz
+  * description : varchar(1024)
+}
+
+entity "User_alert_rule" as user_alert_rule {
+  * id : int8
+  --
+  * user_id : int8 <<FK>>
+  * created : timestamptz
+  * description : varchar(1024)
+  * enabled : boolean
+  * rule_content : json
+}
+
+user ||..o{ user_alert_rule
+alert ||..|| user_alert_rule
+
+'------------------------------------------
+
+entity "Adminu_user" as admin_user {
+  * admin_user_id : int8
+  --
+  * user_name : varchar(24) <<unique>>
+  * name : varchar(100)
+  * email : varchar(64) <<unique>>
+  * password_hash : bytea
+  * created : timestamp
+  * created_by : varchar(24)
+  deleted : boolean
+}
+
+entity "Role" as role {
+  * role_id : int8
+  --
+  * role_name : varchar(24) <<unique>>
+  * created : timestamp
+  * created_by : varchar(24)
+  deleted : boolean
+}
+
+entity "Admin_role" as admin_role {
+  * role_id : int8
+  * admin_user_id : int8
+  --
+  * assigned : timestamp
+  * assigned_by : varchar(24)
+}
+
+admin_user ||..|{ admin_role
+admin_role ||..|| role
+
+'------------------------------------------
+
+@enduml

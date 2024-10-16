@@ -1,0 +1,26 @@
+plugins {
+    id 'application'
+    id 'org.springframework.boot' version '3.3.0' 
+}
+
+apply plugin: 'io.spring.dependency-management'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    // https://mvnrepository.com/artifact/com.fasterxml.jackson.datatype/jackson-datatype-jdk8
+implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.17.2'
+
+    implementation 'org.postgresql:postgresql:42.7.4'
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+}
+
+application {
+    mainClass = "ru.smarthome.telemetry.TelemetryMicroserviceApplication" 
+}

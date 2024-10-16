@@ -1,0 +1,93 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "Пользователь", "Управляет устройствами в доме")
+Person(admin, "Администратор", "Администрирует систему")
+Container(cdn, "CDN", , "Отдает веб-браузерам пользователей статические файлы веб-приложения")
+System_Boundary(smart_home_system, "Smart Home") {
+    Container(web_application, "Веб-приложение пользователя", "Nginx, Java Script", "Предоставляет пользователям функциональность для управления устройствами в домах используя веб-браузер")
+
+    Container(admin_web_application, "Веб-приложение администратора", "Nginx, Java Script", "Предоставляет функциональность администрирования системы используя веб-браузер")
+    
+    Container(api_gateway, "API Gateway", "Kong", "Направляет HTTP запросы к соответствующим микросервисам, выполняет аутентификацию пользователей")
+    
+    Container(user_service, "Микросервис управления пользователями", "Java, Spring Boot", "Управляет пользователями системы")
+    ContainerDb(user_db, "База данных пользователей", "Postgre SQL")
+
+    Container(device_service, "Микросервис управления устройствами", "Java, Spring Boot", "Добавляет, изменяет, удаляет устройства пользователя")
+    ContainerDb(device_db, "База данных устройств", "Postgre SQL")
+    
+    Container(telemetry_service, "Микросервис телеметрии", "Java, Spring Boot", "Получает и предоставляет данные телеметрии устройств")
+    ContainerDb(telemetry_db, "База данных телеметрии", "Postgre SQL")
+
+    Container(script_service, "Микросервис управления сценариями автоматизации", "Java, Spring Boot", "Управляет и оркестрирует пользовательскими сценариями автоматизации (например: если сейчас 20:00, то включи свет на площадке перед домом)")
+    ContainerDb(script_db, "База данных сценариев автоматизации", "Postgre SQL")
+
+    Container(alert_service, "Микросервис обнаружения проблемных ситуациях", "Java, Spring Boot", "Выявляет и предупреждает пользователей об обнаруженных проблемах (например: ворота открыты больше 2х часов, свет горит больше 12 часов)")
+    ContainerDb(alert_service_db, "База данных проблемных ситуаций", "Postgre SQL")
+
+    Container(lightening_service, "Микросервис управления освещением", "Java, Spring Boot", "Взаимодействует с модулями управления освещения в домах")
+
+    Container(automatic_gates_service, "Микросервис управления автоматическими воротами", "Java, Spring Boot", "Взаимодействует с модулями управления автоматическими воротами")
+   
+    Container(communication_service, "Сервис коммуникации с управляющими модулями", "Java, Spring Boot", "Отправляет команды управляющим модулям")
+
+    Container(heating_service, "Микросервис управления отоплением", "Java, Spring Boot", "Взаимодействует с модулями управления отоплением в домах")
+
+    ContainerQueue(kafka, "Kafka", "", "Шина данных")
+}
+
+System_Ext(heating_module, "Модуль управления отоплением", "Управляет отоплением в доме")
+System_Ext(lightening_module, "Модуль управления освещением", "Управляет осветительными приборами в доме")
+System_Ext(automatic_gates_module, "Модуль управления автоматическими воротами", "Управляет автоматическими воротами")
+
+Rel(user, cdn, "Посещает smarthome.ru")
+Rel(admin, cdn, "Посещает smarthome.ru/admin")
+
+Rel(cdn, web_application, "Запращивает статические файлы веб-приложения")
+Rel(cdn, admin_web_application, "Запращивает статические файлы веб-приложения")
+Rel(user, web_application, "Управляет устройствами дома, просматривает телеметрию, создает и управляет сценариями")
+Rel(admin, admin_web_application, "Администрирует систему")
+Rel(web_application, api_gateway, "Выполняет обращения к API", "REST")
+Rel(admin_web_application, api_gateway, "Выполняет обращения к API", "REST")
+
+Rel(api_gateway, user_service, "Выполняет обращения к API", "REST")
+Rel(user_service, user_db, "Читает и записывает данные", "SQL")
+
+Rel(api_gateway, device_service, "Выполняет обращения к API", "REST")
+Rel(device_service, device_db, "Читает и записывает данные", "SQL")
+
+Rel(api_gateway, lightening_service, "Выполняет обращения к API", "REST")
+Rel(lightening_service, device_service, "Валидирует наличие устройства у пользователя и сохраняет текущую конфигурацию устройства", "REST")
+Rel(lightening_service, communication_service, "Отправляет команды управления освещением", "REST")
+
+Rel(api_gateway, automatic_gates_service, "Выполняет обращения к API", "REST")
+Rel(automatic_gates_service, device_service, "Валидирует наличие устройства у пользователя и сохраняет текущую конфигурацию устройства", "REST")
+Rel(automatic_gates_service, communication_service, "Отправляет команды управления воротами", "REST")
+
+Rel(automatic_gates_module, api_gateway, "Передает телеметрию и принимает управляющие команды", "WebSocket")
+
+Rel(lightening_module, api_gateway, "Передает телеметрию и принимает управляющие команды", "WebSocket")
+
+Rel(heating_module, api_gateway, "Передает телеметрию и принимает управляющие команды", "WebSocket")
+
+Rel(communication_service, api_gateway, "Отправляет команды управляющим модулям", "WebSocket")
+
+Rel(api_gateway, telemetry_service, "Передает данные телеметрии", "WebSocket")
+Rel(telemetry_service, telemetry_db, "Читает и записывает данные", "SQL")
+Rel(telemetry_service, kafka, "Записывает данные телеметрии")
+
+Rel(api_gateway, heating_service, "Выполняет обращения к API", "REST")
+Rel(heating_service, device_service, "Валидирует наличие устройства у пользователя и сохраняет текущую конфигурацию устройства", "REST")
+Rel(heating_service, communication_service, "Отправляет команды управления отоплением", "REST")
+
+Rel(api_gateway, script_service, "Выполняет обращения к API", "REST")
+Rel(script_service, script_db, "Читает и записывает данные", "SQL")
+Rel(script_service, lightening_service, "Выполняет обращения к API для управления освещением", "REST")
+Rel(script_service, automatic_gates_service, "Выполняет обращения к API для управления воротами", "REST")
+Rel(script_service, heating_service, "Выполняет обращения к API для управления отоплением", "REST")
+
+Rel(api_gateway, alert_service, "Выполняет обращения к API", "REST")
+Rel(alert_service, kafka, "Читает данные телеметрии")
+Rel(alert_service, alert_service_db, "Читает и записывает данные", "SQL")
+@enduml

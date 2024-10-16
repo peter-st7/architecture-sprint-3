@@ -1,0 +1,20 @@
+plugins {
+    id 'application'
+    id 'org.springframework.boot' version '3.3.0' 
+}
+
+apply plugin: 'io.spring.dependency-management'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+}
+
+application {
+    mainClass = "ru.smarthome.communication.CommunicationMicroserviceApplication" 
+}
